@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.rysys.photobooth</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>RYsys Photobooth</name>
+  <summary>Cross-platform modern photo booth application</summary>
+  <description>
+    <p>
+      RYsys Photobooth is a versatile photo booth application designed for desktop and web.
+      It supports single captures, classic 4-frame strips, 2x2/3x3 grids, burst captures,
+      animated GIFs, timed shutter, custom frames, real-time filters, PDF and PNG exports,
+      and native direct printing.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.rysys.photobooth.desktop</launchable>
+  <url type="homepage">https://github.com/Rysys86/rysys-photobooth</url>
+  <url type="bugtracker">https://github.com/Rysys86/rysys-photobooth/issues</url>
+  <provides>
+    <binary>rysys-photobooth</binary>
+  </provides>
+  <categories>
+    <category>Graphics</category>
+    <category>Photography</category>
+    <category>AudioVideo</category>
+  </categories>
+  <releases>
+    <release version="1.0.0" date="2026-10-19">
+      <description>
+        <p>Initial release of RYsys Photobooth with multi-mode capture, filters, custom frames, PNG/PDF export, GIF encoding, and printing.</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1" />
+</component>

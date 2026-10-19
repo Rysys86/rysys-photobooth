@@ -1,0 +1,55 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "RYsys Photobooth",
+  "version": "1.0.0",
+  "identifier": "com.rysys.photobooth",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "RYsys Photobooth",
+        "width": 960,
+        "height": 720,
+        "minWidth": 360,
+        "minHeight": 540,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Photography",
+    "shortDescription": "Modern photo booth application",
+    "longDescription": "RYsys Photobooth is a cross-platform photo booth application supporting single photos, classic strips, 2x2/3x3 grids, animated GIFs, live filters, custom frames, PNG/PDF export, and printing.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/share/metainfo/com.rysys.photobooth.metainfo.xml": "com.rysys.photobooth.metainfo.xml",
+          "/usr/share/appdata/com.rysys.photobooth.appdata.xml": "com.rysys.photobooth.appdata.xml"
+        }
+      }
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}
