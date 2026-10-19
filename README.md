@@ -28,7 +28,6 @@ Download installers from [GitHub Releases](https://github.com/Rysys86/rysys-phot
 |---|---|
 | Windows | `RYsys.Photobooth_1.0.0_x64-setup.exe`, `.msi` |
 | Linux | `RYsys.Photobooth_1.0.0_amd64.AppImage`, `.deb`, `.rpm` |
-| Linux AppData | `com.rysys.photobooth.appdata.xml` |
 | Web | `rysys-photobooth-web.zip` |
 
 ---

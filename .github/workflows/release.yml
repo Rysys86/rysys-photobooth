@@ -93,14 +93,11 @@ jobs:
           zip -r ../rysys-photobooth-web.zip .
           cd ..
 
-      - name: Upload web bundle and appdata to Release
+      - name: Upload web bundle to Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            rysys-photobooth-web.zip
-            src-tauri/com.rysys.photobooth.appdata.xml
-            src-tauri/com.rysys.photobooth.metainfo.xml
+          files: rysys-photobooth-web.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -38,14 +38,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "linux": {
-      "deb": {
-        "files": {
-          "/usr/share/metainfo/com.rysys.photobooth.metainfo.xml": "com.rysys.photobooth.metainfo.xml",
-          "/usr/share/appdata/com.rysys.photobooth.appdata.xml": "com.rysys.photobooth.appdata.xml"
-        }
-      }
-    },
     "windows": {
       "nsis": {
         "installMode": "currentUser"
