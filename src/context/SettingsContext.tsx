@@ -1,18 +1,29 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Settings } from '../types';
+import { Mode, Settings } from '../types';
 
 export const DEFAULT_SETTINGS: Settings = {
   camera: {
     deviceId: '',
     resolution: '720p',
     countdown: 3,
+    mirrored: true,
   },
   capture: {
     defaultMode: 'single',
+    modeLayouts: {
+      single: 'standard',
+      strip4: 'vertical',
+      booth: 'vertical',
+      grid2x2: 'classic',
+      grid3x3: 'classic',
+      burst: 'strip',
+      gif: 'standard',
+      timed: 'standard',
+    },
     filter: 'none',
     framePreset: 'none',
+    customFrames: {},
     customFrameDataUrl: null,
-    stripLayout: 'vertical',
     burstCount: 5,
     timedInterval: 3,
     gifDuration: 4,
@@ -37,7 +48,26 @@ export const DEFAULT_SETTINGS: Settings = {
   },
 };
 
-const STORAGE_KEY = 'rysys_photobooth_settings_v1';
+export const getCustomFrameFor = (
+  capture: Settings['capture'],
+  mode: Mode,
+  layout?: string
+): string | null => {
+  if (!capture) return null;
+  const layoutKey = layout || capture.modeLayouts?.[mode];
+  if (layoutKey && capture.customFrames?.[`${mode}:${layoutKey}`]) {
+    return capture.customFrames[`${mode}:${layoutKey}`];
+  }
+  if (capture.customFrames?.[mode]) {
+    return capture.customFrames[mode];
+  }
+  if (capture.customFrameDataUrl) {
+    return capture.customFrameDataUrl;
+  }
+  return null;
+};
+
+const STORAGE_KEY = 'rysys_photobooth_settings_v2';
 
 interface SettingsContextType {
   settings: Settings;
@@ -50,14 +80,24 @@ const SettingsContext = createContext<SettingsContextType | null>(null);
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<Settings>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('rysys_photobooth_settings_v1');
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
           ...DEFAULT_SETTINGS,
           ...parsed,
           camera: { ...DEFAULT_SETTINGS.camera, ...parsed.camera },
-          capture: { ...DEFAULT_SETTINGS.capture, ...parsed.capture },
+          capture: {
+            ...DEFAULT_SETTINGS.capture,
+            ...parsed.capture,
+            modeLayouts: {
+              ...DEFAULT_SETTINGS.capture.modeLayouts,
+              ...(parsed.capture?.modeLayouts || {}),
+              // Backwards compatibility for stripLayout
+              ...(parsed.capture?.stripLayout ? { strip4: parsed.capture.stripLayout, booth: parsed.capture.stripLayout } : {}),
+            },
+            customFrames: parsed.capture?.customFrames || {},
+          },
           output: { ...DEFAULT_SETTINGS.output, ...parsed.output },
           print: { ...DEFAULT_SETTINGS.print, ...parsed.print },
           appearance: { ...DEFAULT_SETTINGS.appearance, ...parsed.appearance },

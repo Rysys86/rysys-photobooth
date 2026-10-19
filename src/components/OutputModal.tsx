@@ -88,9 +88,12 @@ export const OutputModal: React.FC<OutputModalProps> = ({ result, onClose }) => 
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>
-            {result.type === 'gif' ? 'Animated GIF Ready' : 'Photo Result'}
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src="./icon.png" alt="Logo" style={{ width: 24, height: 24, borderRadius: 6 }} />
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>
+              {result.type === 'gif' ? 'Animated GIF Ready' : 'Photo Result'}
+            </h3>
+          </div>
           <button className="btn-icon" onClick={onClose} aria-label="Close modal">
             ✕
           </button>

@@ -1,6 +1,6 @@
 [package]
 name = "rysys-photobooth"
-version = "1.0.0"
+version = "1.1.0"
 description = "RYsys Photobooth cross-platform application"
 authors = ["Rysys86"]
 license = "MIT"

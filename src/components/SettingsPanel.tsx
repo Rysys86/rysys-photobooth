@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
-import { useSettings } from '../context/SettingsContext';
-import { FilterName, FramePreset, PageSize, Resolution, StripLayout, ThemeMode } from '../types';
+import React, { useRef, useState } from 'react';
+import { useSettings, getCustomFrameFor } from '../context/SettingsContext';
+import { FilterName, FramePreset, Mode, MODE_LAYOUTS, PageSize, Resolution, ThemeMode } from '../types';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -20,7 +20,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const { settings, updateSettings, resetSettings } = useSettings();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Frame manager state
+  const [frameManagerMode, setFrameManagerMode] = useState<Mode>(settings.capture.defaultMode);
+  const [frameManagerLayout, setFrameManagerLayout] = useState<string>(
+    settings.capture.modeLayouts[settings.capture.defaultMode] || 'standard'
+  );
+
   if (!isOpen) return null;
+
+  const currentLayouts = MODE_LAYOUTS[frameManagerMode] || [];
+  const currentKey = `${frameManagerMode}:${frameManagerLayout}`;
+  const activeCustomFrame = getCustomFrameFor(settings.capture, frameManagerMode, frameManagerLayout);
+  const hasExactFrame = Boolean(settings.capture.customFrames?.[currentKey]);
 
   const handleCustomFrameUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -33,29 +44,41 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         ...prev,
         capture: {
           ...prev.capture,
-          customFrameDataUrl: dataUrl,
+          customFrames: {
+            ...prev.capture.customFrames,
+            [currentKey]: dataUrl,
+          },
         },
       }));
     };
     reader.readAsDataURL(file);
   };
 
-  const clearCustomFrame = () => {
+  const clearCurrentCustomFrame = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
-    updateSettings((prev) => ({
-      ...prev,
-      capture: {
-        ...prev.capture,
-        customFrameDataUrl: null,
-      },
-    }));
+    updateSettings((prev) => {
+      const nextCustomFrames = { ...prev.capture.customFrames };
+      delete nextCustomFrames[currentKey];
+      delete nextCustomFrames[frameManagerMode];
+      return {
+        ...prev,
+        capture: {
+          ...prev.capture,
+          customFrames: nextCustomFrames,
+          customFrameDataUrl: null,
+        },
+      };
+    });
   };
 
   return (
     <div className="drawer-backdrop" onClick={onClose}>
       <div className="settings-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="drawer-header">
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Settings</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src="./icon.png" alt="Logo" style={{ width: 24, height: 24, borderRadius: 6 }} />
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Settings</h2>
+          </div>
           <button className="btn-icon" onClick={onClose} aria-label="Close settings">
             ✕
           </button>
@@ -116,13 +139,168 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <option value={10}>10 seconds</option>
               </select>
             </div>
+
+            <div className="setting-row">
+              <label>Mirror Camera View</label>
+              <input
+                type="checkbox"
+                checked={settings.camera.mirrored}
+                onChange={(e) =>
+                  updateSettings((prev) => ({
+                    ...prev,
+                    camera: { ...prev.camera, mirrored: e.target.checked },
+                  }))
+                }
+              />
+            </div>
           </div>
 
-          {/* CAPTURE SECTION */}
+          {/* CUSTOM FRAMES PER MODE & LAYOUT */}
           <div className="setting-section">
-            <div className="section-title">Capture & Effects</div>
+            <div className="section-title">Custom Frames & Layouts</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Configure custom PNG border templates per capture mode and layout.
+            </div>
+
             <div className="setting-row">
-              <label>Filter</label>
+              <label>Target Mode</label>
+              <select
+                className="setting-select"
+                value={frameManagerMode}
+                onChange={(e) => {
+                  const m = e.target.value as Mode;
+                  setFrameManagerMode(m);
+                  const firstLayout = MODE_LAYOUTS[m]?.[0]?.id || 'standard';
+                  setFrameManagerLayout(firstLayout);
+                }}
+              >
+                <option value="single">Single Photo</option>
+                <option value="strip4">Strip (4 Photos)</option>
+                <option value="booth">Booth Classic</option>
+                <option value="grid2x2">2x2 Grid</option>
+                <option value="grid3x3">3x3 Grid</option>
+                <option value="burst">Burst Mode</option>
+                <option value="gif">Animated GIF</option>
+                <option value="timed">Timed Shutter</option>
+              </select>
+            </div>
+
+            <div className="setting-row">
+              <label>Target Layout</label>
+              <select
+                className="setting-select"
+                value={frameManagerLayout}
+                onChange={(e) => setFrameManagerLayout(e.target.value)}
+              >
+                {currentLayouts.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Custom Frame Status & Upload Card */}
+            <div
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                padding: 12,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                  Frame for {frameManagerMode} ({frameManagerLayout})
+                </span>
+                {hasExactFrame && (
+                  <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
+                    ✓ Custom Set
+                  </span>
+                )}
+              </div>
+
+              {activeCustomFrame ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <img
+                    src={activeCustomFrame}
+                    alt="Custom frame preview"
+                    style={{
+                      width: 50,
+                      height: 50,
+                      objectFit: 'contain',
+                      background: '#1e293b',
+                      borderRadius: 4,
+                      border: '1px solid var(--border)',
+                    }}
+                  />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-main)' }}>
+                      {hasExactFrame ? 'Custom PNG overlay active' : 'Inherited frame active'}
+                    </span>
+                    <button
+                      onClick={clearCurrentCustomFrame}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--danger)',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        padding: 0,
+                      }}
+                    >
+                      Remove Custom Frame
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  No custom frame set for this layout. Preset frame will apply.
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/webp"
+                className="setting-input"
+                style={{ fontSize: '0.75rem' }}
+                onChange={handleCustomFrameUpload}
+              />
+            </div>
+
+            <div className="setting-row">
+              <label>Preset Frame Fallback</label>
+              <select
+                className="setting-select"
+                value={settings.capture.framePreset}
+                onChange={(e) =>
+                  updateSettings((prev) => ({
+                    ...prev,
+                    capture: { ...prev.capture, framePreset: e.target.value as FramePreset },
+                  }))
+                }
+              >
+                <option value="none">None (Clean)</option>
+                <option value="classic">Classic Border</option>
+                <option value="polaroid">Polaroid</option>
+                <option value="retro">Vintage Gold</option>
+                <option value="whiteBorder">White Border</option>
+                <option value="rounded">Rounded Corners</option>
+                <option value="film">35mm Film</option>
+              </select>
+            </div>
+          </div>
+
+          {/* CAPTURE FILTERS & GIF SETTINGS */}
+          <div className="setting-section">
+            <div className="section-title">Filters & Timing</div>
+            <div className="setting-row">
+              <label>Color Filter</label>
               <select
                 className="setting-select"
                 value={settings.capture.filter}
@@ -145,70 +323,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             </div>
 
             <div className="setting-row">
-              <label>Frame Preset</label>
-              <select
-                className="setting-select"
-                value={settings.capture.framePreset}
-                onChange={(e) =>
-                  updateSettings((prev) => ({
-                    ...prev,
-                    capture: { ...prev.capture, framePreset: e.target.value as FramePreset },
-                  }))
-                }
-              >
-                <option value="none">None</option>
-                <option value="classic">Classic Border</option>
-                <option value="polaroid">Polaroid</option>
-                <option value="retro">Vintage Gold</option>
-                <option value="whiteBorder">White Border</option>
-                <option value="rounded">Rounded Corners</option>
-              </select>
-            </div>
-
-            <div className="setting-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <label>Custom Frame</label>
-                {settings.capture.customFrameDataUrl && (
-                  <button
-                    onClick={clearCustomFrame}
-                    style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.8rem' }}
-                  >
-                    Clear Custom Frame
-                  </button>
-                )}
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="setting-input"
-                onChange={handleCustomFrameUpload}
-              />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                {settings.capture.customFrameDataUrl ? '✓ Custom frame active (overrides preset)' : 'Presets apply when no custom frame uploaded'}
-              </span>
-            </div>
-
-            <div className="setting-row">
-              <label>Strip Layout</label>
-              <select
-                className="setting-select"
-                value={settings.capture.stripLayout}
-                onChange={(e) =>
-                  updateSettings((prev) => ({
-                    ...prev,
-                    capture: { ...prev.capture, stripLayout: e.target.value as StripLayout },
-                  }))
-                }
-              >
-                <option value="vertical">Vertical Strip</option>
-                <option value="horizontal">Horizontal Strip</option>
-                <option value="2-up">2-Up Grid</option>
-              </select>
-            </div>
-
-            <div className="setting-row">
-              <label>GIF FPS</label>
+              <label>GIF Frame Rate</label>
               <select
                 className="setting-select"
                 value={settings.capture.gifFps}
@@ -241,6 +356,24 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <option value={4}>4 seconds</option>
                 <option value={6}>6 seconds</option>
                 <option value={8}>8 seconds</option>
+              </select>
+            </div>
+
+            <div className="setting-row">
+              <label>Burst Shot Count</label>
+              <select
+                className="setting-select"
+                value={settings.capture.burstCount}
+                onChange={(e) =>
+                  updateSettings((prev) => ({
+                    ...prev,
+                    capture: { ...prev.capture, burstCount: Number(e.target.value) as 3 | 5 | 10 },
+                  }))
+                }
+              >
+                <option value={3}>3 shots</option>
+                <option value={5}>5 shots</option>
+                <option value={10}>10 shots</option>
               </select>
             </div>
           </div>

@@ -27,7 +27,7 @@ export const drawFrame = async (
   drawPreset(ctx, width, height, preset);
 };
 
-const drawPreset = (
+export const drawPreset = (
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
@@ -74,30 +74,46 @@ const drawPreset = (
       break;
     }
     case 'whiteBorder': {
-      const border = Math.round(Math.min(width, height) * 0.04);
+      const border = Math.round(Math.min(width, height) * 0.035);
       ctx.lineWidth = border * 2;
       ctx.strokeStyle = '#ffffff';
       ctx.strokeRect(0, 0, width, height);
       break;
     }
     case 'rounded': {
-      // Soft rounded mask around edges
       const r = Math.round(Math.min(width, height) * 0.06);
-      ctx.fillStyle = '#0f172a';
-      // Cut outer corners
-      ctx.beginPath();
-      ctx.rect(0, 0, width, height);
-      ctx.arc(r, r, r, Math.PI, 1.5 * Math.PI);
-      ctx.arc(width - r, r, r, 1.5 * Math.PI, 2 * Math.PI);
-      ctx.arc(width - r, height - r, r, 0, 0.5 * Math.PI);
-      ctx.arc(r, height - r, r, 0.5 * Math.PI, Math.PI);
-      ctx.closePath();
-      // Draw border ring
       ctx.lineWidth = Math.max(4, Math.round(width * 0.015));
       ctx.strokeStyle = '#ffffff';
       ctx.beginPath();
       ctx.roundRect(10, 10, width - 20, height - 20, r);
       ctx.stroke();
+      break;
+    }
+    case 'film': {
+      // 35mm film perforations on left and right or top and bottom
+      const barH = Math.max(16, Math.round(height * 0.07));
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(0, 0, width, barH);
+      ctx.fillRect(0, height - barH, width, barH);
+
+      // Sprocket holes
+      ctx.fillStyle = '#ffffff';
+      const holeW = Math.round(barH * 0.45);
+      const holeH = Math.round(barH * 0.55);
+      const step = holeW * 2.2;
+      const count = Math.floor(width / step);
+      const offsetX = (width - count * step) / 2;
+
+      for (let i = 0; i < count; i++) {
+        const x = offsetX + i * step;
+        ctx.beginPath();
+        ctx.roundRect(x, (barH - holeH) / 2, holeW, holeH, 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.roundRect(x, height - barH + (barH - holeH) / 2, holeW, holeH, 2);
+        ctx.fill();
+      }
       break;
     }
     case 'none':

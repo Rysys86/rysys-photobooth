@@ -131,9 +131,23 @@ body {
 .camera-video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transform: scaleX(-1);
+  object-fit: contain;
+  display: block;
   transition: filter 0.15s ease;
+}
+
+.camera-video.mirrored {
+  transform: scaleX(-1);
+}
+
+.live-frame-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .flash-overlay {
@@ -239,6 +253,54 @@ body {
   background: var(--accent);
   color: #ffffff;
   border-color: var(--accent);
+}
+
+.layout-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.layout-selector::-webkit-scrollbar {
+  display: none;
+}
+
+.layout-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+
+.layout-pill {
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.layout-pill:hover {
+  border-color: var(--accent);
+}
+
+.layout-pill.active {
+  background: var(--bg-card);
+  color: #60a5fa;
+  border-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.25);
 }
 
 .shutter-bar {

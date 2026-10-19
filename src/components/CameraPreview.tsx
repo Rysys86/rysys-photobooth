@@ -1,35 +1,46 @@
 import React from 'react';
-import { useSettings } from '../context/SettingsContext';
+import { Mode } from '../types';
+import { useSettings, getCustomFrameFor } from '../context/SettingsContext';
 import { CSS_FILTERS } from '../utils/filters';
 
 interface CameraPreviewProps {
   videoRef: React.RefObject<HTMLVideoElement>;
   isStreaming: boolean;
+  isAutoplayBlocked: boolean;
   error: string | null;
   countdown: number | null;
   flash: boolean;
   currentFrameIndex: number;
   totalFrames: number;
   isCapturing: boolean;
+  activeMode: Mode;
+  activeLayout: string;
   onRetry: () => void;
+  onResumePlayback: () => void;
 }
 
 export const CameraPreview: React.FC<CameraPreviewProps> = ({
   videoRef,
   isStreaming,
+  isAutoplayBlocked,
   error,
   countdown,
   flash,
   currentFrameIndex,
   totalFrames,
   isCapturing,
+  activeMode,
+  activeLayout,
   onRetry,
+  onResumePlayback,
 }) => {
   const { settings } = useSettings();
   const filterStyle = CSS_FILTERS[settings.capture.filter] || 'none';
+  const customFrameUrl = getCustomFrameFor(settings.capture, activeMode, activeLayout);
+  const isMirrored = settings.camera.mirrored;
 
   return (
-    <div className="camera-container">
+    <div className="camera-container" onClick={isAutoplayBlocked ? onResumePlayback : undefined}>
       {/* Flash overlay */}
       {flash && <div className="flash-overlay" />}
 
@@ -53,24 +64,16 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         playsInline
         autoPlay
         muted
-        className="camera-video"
+        className={`camera-video ${isMirrored ? 'mirrored' : ''}`}
         style={{ filter: filterStyle }}
       />
 
       {/* Live Frame Overlay Preview */}
-      {settings.capture.customFrameDataUrl ? (
+      {customFrameUrl ? (
         <img
-          src={settings.capture.customFrameDataUrl}
+          src={customFrameUrl}
           alt="Frame Overlay"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'fill',
-            pointerEvents: 'none',
-            zIndex: 10,
-          }}
+          className="live-frame-overlay"
         />
       ) : settings.capture.framePreset === 'classic' ? (
         <div
@@ -116,10 +119,48 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
             zIndex: 10,
           }}
         />
+      ) : settings.capture.framePreset === 'film' ? (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderTop: '28px solid #111111',
+            borderBottom: '28px solid #111111',
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}
+        />
       ) : null}
 
+      {/* Autoplay Blocked Banner */}
+      {isAutoplayBlocked && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            zIndex: 30,
+            cursor: 'pointer',
+          }}
+          onClick={onResumePlayback}
+        >
+          <div style={{ fontSize: '3rem' }}>▶️</div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#ffffff' }}>
+            Tap to Start Camera Preview
+          </div>
+          <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+            Browser paused video playback until user interaction
+          </div>
+        </div>
+      )}
+
       {/* Error / Offline state */}
-      {(!isStreaming || error) && (
+      {(!isStreaming && !isAutoplayBlocked) && (
         <div
           style={{
             position: 'absolute',
@@ -137,10 +178,10 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         >
           <div style={{ fontSize: '2.5rem' }}>📷</div>
           <div style={{ maxWidth: 360, lineHeight: 1.5, color: '#e2e8f0' }}>
-            {error || 'Starting camera stream...'}
+            {error || 'Starting camera stream... If video does not appear, click retry below.'}
           </div>
           <button className="btn-primary" onClick={onRetry}>
-            Try Again
+            🔄 Start Camera
           </button>
         </div>
       )}

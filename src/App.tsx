@@ -1,29 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { SettingsProvider, useSettings } from './context/SettingsContext';
+import React, { useState, useEffect, useCallback } from 'react';
+import { SettingsProvider, useSettings, getCustomFrameFor } from './context/SettingsContext';
 import { useCamera } from './hooks/useCamera';
 import { useCaptureEngine } from './hooks/useCaptureEngine';
 import { CameraPreview } from './components/CameraPreview';
 import { ModeSelector } from './components/ModeSelector';
 import { SettingsPanel } from './components/SettingsPanel';
 import { OutputModal } from './components/OutputModal';
-import { CapturedResult, Mode } from './types';
+import { CapturedResult, Mode, MODE_LAYOUTS } from './types';
 
 const AppContent: React.FC = () => {
   const { settings, updateSettings } = useSettings();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [capturedResult, setCapturedResult] = useState<CapturedResult | null>(null);
 
+  const activeMode = settings.capture.defaultMode;
+  const activeLayout = settings.capture.modeLayouts[activeMode] || MODE_LAYOUTS[activeMode]?.[0]?.id || 'standard';
+  const hasCustomFrame = Boolean(getCustomFrameFor(settings.capture, activeMode, activeLayout));
+
   const {
     videoRef,
     devices,
     activeDeviceId,
     isStreaming,
+    isAutoplayBlocked,
     error,
     switchDevice,
     restartStream,
+    resumePlayback,
   } = useCamera({
     deviceId: settings.camera.deviceId,
     resolution: settings.camera.resolution,
+    mirrored: settings.camera.mirrored,
     onDeviceSelect: (id) => {
       updateSettings((prev) => ({
         ...prev,
@@ -49,7 +56,7 @@ const AppContent: React.FC = () => {
     },
   });
 
-  const handleShutter = React.useCallback(() => {
+  const handleShutter = useCallback(() => {
     if (isCapturing) {
       cancelCapture();
       return;
@@ -66,17 +73,29 @@ const AppContent: React.FC = () => {
     switchDevice(devices[nextIdx].deviceId);
   };
 
-  const handleSelectMode = React.useCallback((mode: Mode) => {
+  const handleSelectMode = useCallback((mode: Mode) => {
     updateSettings((prev) => ({
       ...prev,
       capture: { ...prev.capture, defaultMode: mode },
     }));
   }, [updateSettings]);
 
+  const handleSelectLayout = useCallback((layoutId: string) => {
+    updateSettings((prev) => ({
+      ...prev,
+      capture: {
+        ...prev.capture,
+        modeLayouts: {
+          ...prev.capture.modeLayouts,
+          [activeMode]: layoutId,
+        },
+      },
+    }));
+  }, [updateSettings, activeMode]);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user typing in input
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
         return;
       }
@@ -105,7 +124,7 @@ const AppContent: React.FC = () => {
     <>
       <header className="app-header">
         <div className="brand">
-          <img src="/icon.png" alt="RYsys Photobooth" className="brand-icon" />
+          <img src="./icon.png" alt="RYsys Photobooth" className="brand-icon" />
           <h1 className="brand-title">RYsys Photobooth</h1>
         </div>
 
@@ -136,20 +155,27 @@ const AppContent: React.FC = () => {
         <CameraPreview
           videoRef={videoRef}
           isStreaming={isStreaming}
+          isAutoplayBlocked={isAutoplayBlocked}
           error={error}
           countdown={countdown}
           flash={flash}
           currentFrameIndex={currentFrameIndex}
           totalFrames={totalFrames}
           isCapturing={isCapturing}
+          activeMode={activeMode}
+          activeLayout={activeLayout}
           onRetry={restartStream}
+          onResumePlayback={resumePlayback}
         />
       </main>
 
       <footer className="app-controls">
         <ModeSelector
-          currentMode={settings.capture.defaultMode}
+          currentMode={activeMode}
+          currentLayout={activeLayout}
+          hasCustomFrame={hasCustomFrame}
           onSelectMode={handleSelectMode}
+          onSelectLayout={handleSelectLayout}
           disabled={isCapturing}
         />
 

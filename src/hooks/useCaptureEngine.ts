@@ -4,6 +4,7 @@ import { captureVideoFrame, compositeFinalImage } from '../utils/canvasComposite
 import { canvasToBlob } from '../utils/exportPng';
 import { createGifFromFrames } from '../utils/exportGif';
 import { printCanvas } from '../utils/printJob';
+import { getCustomFrameFor } from '../context/SettingsContext';
 
 interface UseCaptureEngineProps {
   settings: Settings;
@@ -49,6 +50,10 @@ export const useCaptureEngine = ({ settings, onResultReady }: UseCaptureEnginePr
   const startCapture = useCallback(
     async (video: HTMLVideoElement, modeOverride?: Mode) => {
       const mode = modeOverride || settings.capture.defaultMode;
+      const layout = settings.capture.modeLayouts[mode] || 'standard';
+      const customFrameUrl = getCustomFrameFor(settings.capture, mode, layout);
+      const isMirrored = settings.camera.mirrored;
+
       abortRef.current = false;
       setIsCapturing(true);
 
@@ -83,7 +88,7 @@ export const useCaptureEngine = ({ settings, onResultReady }: UseCaptureEnginePr
           for (let i = 0; i < frameCount; i++) {
             if (abortRef.current) return;
             setCurrentFrameIndex(i + 1);
-            const frame = captureVideoFrame(video);
+            const frame = captureVideoFrame(video, isMirrored);
             gifFrames.push(frame);
             await new Promise((res) => setTimeout(res, intervalMs));
           }
@@ -100,6 +105,7 @@ export const useCaptureEngine = ({ settings, onResultReady }: UseCaptureEnginePr
             blob: gifBlob,
             frames: gifFrames.slice(0, 4).map((c) => c.toDataURL('image/jpeg', 0.6)),
             mode,
+            layout,
             timestamp: Date.now(),
           });
           return;
@@ -113,15 +119,16 @@ export const useCaptureEngine = ({ settings, onResultReady }: UseCaptureEnginePr
           const takeTimedShot = async () => {
             if (abortRef.current) return;
             triggerFlash();
-            const frame = captureVideoFrame(video);
+            const frame = captureVideoFrame(video, isMirrored);
             const comp = await compositeFinalImage([frame], 'single', {
               filter: settings.capture.filter,
               framePreset: settings.capture.framePreset,
-              customFrameUrl: settings.capture.customFrameDataUrl,
+              customFrameUrl,
               watermark: settings.output.watermark,
               watermarkPosition: settings.output.watermarkPosition,
-              stripLayout: settings.capture.stripLayout,
+              layout,
               colorMode: settings.print.colorMode,
+              mirrored: isMirrored,
             });
             const blob = await canvasToBlob(comp, settings.output.pngQuality);
             onResultReady({
@@ -130,6 +137,7 @@ export const useCaptureEngine = ({ settings, onResultReady }: UseCaptureEnginePr
               blob,
               frames: [frame.toDataURL('image/jpeg', 0.7)],
               mode,
+              layout,
               timestamp: Date.now(),
             });
           };
@@ -162,7 +170,7 @@ export const useCaptureEngine = ({ settings, onResultReady }: UseCaptureEnginePr
           }
 
           triggerFlash();
-          const frame = captureVideoFrame(video);
+          const frame = captureVideoFrame(video, isMirrored);
           capturedFrames.push(frame);
         }
 
@@ -170,11 +178,12 @@ export const useCaptureEngine = ({ settings, onResultReady }: UseCaptureEnginePr
         const finalCanvas = await compositeFinalImage(capturedFrames, mode, {
           filter: settings.capture.filter,
           framePreset: settings.capture.framePreset,
-          customFrameUrl: settings.capture.customFrameDataUrl,
+          customFrameUrl,
           watermark: settings.output.watermark,
           watermarkPosition: settings.output.watermarkPosition,
-          stripLayout: settings.capture.stripLayout,
+          layout,
           colorMode: settings.print.colorMode,
+          mirrored: isMirrored,
         });
 
         const blob = await canvasToBlob(finalCanvas, settings.output.pngQuality);
@@ -186,7 +195,7 @@ export const useCaptureEngine = ({ settings, onResultReady }: UseCaptureEnginePr
           blob,
           frames: capturedFrames.map((c) => c.toDataURL('image/jpeg', 0.7)),
           mode,
-          layout: settings.capture.stripLayout,
+          layout,
           timestamp: Date.now(),
         });
 

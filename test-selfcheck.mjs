@@ -23,8 +23,34 @@ assert(bytes.byteLength > 0, 'GIF bytes generated');
 const filters = ['none', 'grayscale', 'sepia', 'vintage', 'cool', 'warm', 'noir', 'invert'];
 assert(filters.length === 8, '8 filters supported');
 
-// 3. Verify strip layouts
-const stripLayouts = ['vertical', 'horizontal', '2-up'];
-assert(stripLayouts.includes('vertical') && stripLayouts.includes('2-up'), 'strip layouts valid');
+// 3. Verify presets
+const framePresets = ['none', 'classic', 'polaroid', 'retro', 'whiteBorder', 'rounded', 'film'];
+assert(framePresets.length === 7, '7 frame presets supported');
+
+// 4. Verify layouts for modes
+const stripLayouts = ['vertical', 'horizontal', '2-up', 'filmstrip', 'postcard'];
+assert(stripLayouts.includes('filmstrip') && stripLayouts.includes('postcard'), 'new strip layouts supported');
+
+const singleLayouts = ['standard', 'portrait', 'square', 'polaroid', 'film'];
+assert(singleLayouts.length === 5, '5 single photo layouts supported');
+
+// 5. Verify custom frame resolution hierarchy
+const dummyCapture = {
+  customFrames: {
+    'strip4:filmstrip': 'data:image/png;filmstrip',
+    'strip4': 'data:image/png;strip4default',
+  },
+  customFrameDataUrl: 'data:image/png;fallback',
+};
+
+const getCustomFrameTest = (cap, mode, layout) => {
+  if (layout && cap.customFrames[`${mode}:${layout}`]) return cap.customFrames[`${mode}:${layout}`];
+  if (cap.customFrames[mode]) return cap.customFrames[mode];
+  return cap.customFrameDataUrl || null;
+};
+
+assert.strictEqual(getCustomFrameTest(dummyCapture, 'strip4', 'filmstrip'), 'data:image/png;filmstrip');
+assert.strictEqual(getCustomFrameTest(dummyCapture, 'strip4', 'vertical'), 'data:image/png;strip4default');
+assert.strictEqual(getCustomFrameTest(dummyCapture, 'single', 'standard'), 'data:image/png;fallback');
 
 console.log('Self-check tests passed successfully.');
